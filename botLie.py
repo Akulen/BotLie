@@ -313,4 +313,4 @@ class BotLie(ircbot.SingleServerIRCBot):
 				fonction(serv, user, msg)
 
 if __name__ == "__main__":
-	BotLie().start("#YouLie")
+	BotLie("#YouLie").start()
