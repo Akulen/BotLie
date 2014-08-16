@@ -247,9 +247,9 @@ class BotLie(ircbot.SingleServerIRCBot):
 				print(curCartes[0][1])
 				del self.joueurs[self.curJoueur].cartes[curCartes[0][0]]
 				del curCartes[0]
-			serv.privmsg("#YouLie", user+" a place "+str(len(args))+" "+self.curCarte.valeur+".")
+			serv.privmsg(self.chan, user+" a place "+str(len(args))+" "+self.curCarte.valeur+".")
 			self.curJoueur = (self.curJoueur+1)%len(self.joueurs)
-			self.play(serv, "#YouLie")
+			self.play(serv, self.chan)
 			self.gshowCartes(serv, self.joueurs[self.curJoueur])
 		else:
 			serv.privmsg(user, "Il n'y a pas de partie en cours.")
@@ -269,7 +269,7 @@ class BotLie(ircbot.SingleServerIRCBot):
 		else:
 			serv.privmsg(chan, "Il n'y a pas de partie en cours.")
 	
-	def __init__(self):
+	def __init__(self, chan):
 		ircbot.SingleServerIRCBot.__init__(self, [("chat.freenode.net", 6667, "123456")], "BotLie", "Tu Mens !")
 		self.pubCommands = [("!init", self.ginit),
 							("!join", self.gjoin),
@@ -278,13 +278,14 @@ class BotLie(ircbot.SingleServerIRCBot):
 		self.privCommands = [("!type", self.gtype),
 							 ("!place", self.gplace),
 							 ("!cards", self.gcartes)]
+		self.chan = chan
 		self.initie = False
 		self.partie = False
 		self.couleurs = ["Carreau", "Coeur", "Pique", "Trefle"]
 		self.valeurs = ["As","Deux","Trois","Quatre","Cinq","Six","Sept","Huit","Neuf","Dix","Valet","Dame","Roi"]
 	
 	def on_welcome(self, serv, ev):
-		serv.join("#YouLie")
+		serv.join(self.chan)
 	
 	def on_pubmsg(self, serv, ev):
 		user = irclib.nm_to_n(ev.source())
@@ -312,4 +313,4 @@ class BotLie(ircbot.SingleServerIRCBot):
 				fonction(serv, user, msg)
 
 if __name__ == "__main__":
-	BotLie().start()
+	BotLie().start("#YouLie")
