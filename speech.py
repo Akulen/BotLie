@@ -10,37 +10,35 @@ cartes_restantes = 'Il vous reste {} carte(s):'
 
 	# Jeu.init
 	
-	initier_partie = '''Vous avez initie une partie de "Tu Mens !".\n
-						Veillez rejoindre la partie en utilisant "!join".\n
-						Une fois que vous etes prets a commencer, tapez "!start".'''
+initier_partie = 'Vous avez initie une partie de "Tu Mens !".\n Veillez rejoindre la partie en utilisant "!join".\n Une fois que vous etes prets a commencer, tapez "!start".'
 
 	# Jeu.join
 	
-	ajout = '{} joue.'
-	deja_ajoute = '{} joue deja.'
-	ERREUR_ajout = 'Il y a eu une erreur lors de l\'ajout de {} !'
+ajout = '{} joue.'
+deja_ajoute = '{} joue deja.'
+ERREUR_ajout = 'Il y a eu une erreur lors de l\'ajout de {} !'
 
 	# Jeu.start
 	
-	manque_joueurs = 'Il n\'y a pas assez de joueurs pour commencer une partie ({} < {}).'
-	commencer_partie = 'Vous avez lance la partie, je distribue a :'
+manque_joueurs = 'Il n\'y a pas assez de joueurs pour commencer une partie ({} < {}).'
+commencer_partie = 'Vous avez lance la partie, je distribue a :'
 
 	# Jeu.value
 	
-	valeur_invalide = 'Cette valeur n\'existe pas.'
-	valeur_valide = 'Vous placez des {}.'
+valeur_invalide = 'Cette valeur n\'existe pas.'
+valeur_valide = 'Vous placez des {}.'
 
 	# Jeu.place
 	
-	poser_cartes = '{} a place {} {}."'
-	carte_invalide = 'Vous avez specifie une/des carte/s que vous n\'avez pas.'
-	carte_double = 'Vous avez renseigne plusieurs fois la meme carte.'
+poser_cartes = '{} a place {} {}."'
+carte_invalide = 'Vous avez specifie une/des carte/s que vous n\'avez pas.'
+carte_double = 'Vous avez renseigne plusieurs fois la meme carte.'
 
 	# Jeu.lie
 	
-	correct = 'Correct.'
-	incorrect = 'Incorrect.'
-	recolte_cartes = 'Vous vous etes pris {} carte/s.'
+correct = 'Correct.'
+incorrect = 'Incorrect.'
+recolte_cartes = 'Vous vous etes pris {} carte/s.'
 
 partie_finie = 'La partie est terminee.'
 suivant = 'C\'est a {} de jouer.'

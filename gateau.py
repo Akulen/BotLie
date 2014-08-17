@@ -3,7 +3,7 @@ from random import shuffle
 from threading import Thread
 
 
-import irc
+import irc.bot
 
 import util
 import speech
@@ -39,9 +39,9 @@ class Carte:
 
 class Joueur:
 
-	def __init__(self, pseudo, cartes=[]):
+	def __init__(self, pseudo):
 		self.pseudo = pseudo
-		self.cartes = cartes
+		self.cartes = []
 	
 	def doublons(self):
 		'''
@@ -87,7 +87,9 @@ class Partie:
 	def __init__(self, createur):
 		self.createur = createur
 		self.commencee = False
+
 		self.pseudos = [createur]
+		self.joueurs = [Joueur(createur)]
 
 	def __bool__(self):
 		return self.commencee
@@ -96,24 +98,24 @@ class Partie:
 		nouveau = joueur not in self.pseudos
 		if nouveau:
 			self.pseudos.append(joueur)
+			self.joueurs.append(Joueur(joueur))
 		return nouveau
 
 	def commencer(self):
 		cartes = []
-		for i in range(len(Cartes.VALEURS)):
-			for j in range(len(Cartes.COULEURS)):
+		for i in range(len(Carte.VALEURS)):
+			for j in range(len(Carte.COULEURS)):
 				cartes.append(Carte(i, j))
 		shuffle(cartes)
-
-		shuffle(self.pseudos)
-		self.joueurs = [Joueur(pseudo) for pseudo in self.pseudos]
 
 		while cartes:
 			for joueur in self.joueurs:
 				if not cartes:
 					break
-				joueur.cartes.append(cartes.pop())
-		
+				carte = cartes[0]
+				del cartes[0]
+				joueur.cartes.append(carte)
+
 		self.joueur = -1
 		self.precedent = -1
 		self.tas = []
@@ -200,11 +202,16 @@ class Jeu:
 	
 	def start(self, src, args):
 		if self.partie is not None:
-			if !self.partie:
+			if not self.partie:
 				if len(self.partie.joueurs) > 2:
-					self.partie.commencer():
+					self.partie.commencer()
 					self.pubmsg(speech.commencer_partie)
 					for joueur in self.partie.joueurs:
+						while True:
+							valeur = joueur.doublons()
+							if not valeur:
+								break
+							self.pubmsg('On a retire les 4 %s de %s.' % (valeur, joueur.pseudo))
 						self.pubmsg(repr(joueur))
 						self.cards(joueur.pseudo, [])
 				else:
@@ -266,7 +273,7 @@ class Jeu:
 						if len(args):
 							if contient_nombres(args):
 								if util.dans_intervalle(args, 1, len(joueur.cartes)):
-									if !util.doublon(args):
+									if not util.doublon(args):
 										if self.partie.gagnant():
 											self.pubmsg(speech.gagnant.format(self.partie.joueurs[self.partie.prec]))
 										if len(self.partie.joueurs) > 1:
@@ -328,7 +335,7 @@ class Jeu:
 
 
 
-class Gateau(irc.bot.SingleServerIRC):
+class Gateau(irc.bot.SingleServerIRCBot):
 
 	def __init__(self, adresse, pseudo, canal):
 		self.adresse = adresse
@@ -343,7 +350,7 @@ class Gateau(irc.bot.SingleServerIRC):
 		self.connection.join(self.canal)
 	
 	def on_message(self, serv, ev):
-		self.message(self, ev.source.nick, ev.arguments[0])
+		self.message(ev.source.nick, ev.arguments[0])
 
 	on_pubmsg  = on_message
 	on_privmsg = on_message
@@ -368,4 +375,9 @@ class Gateau(irc.bot.SingleServerIRC):
 		msg = msg.split('\n')
 		for ligne in msg:
 			self.connection.privmsg(dst, ligne)
+
+
+if __name__ == '__main__':
+	bot = Gateau(('irc.smoothirc.net', 6667), 'Gateau', '#YouLie')
+	bot.start()
 
