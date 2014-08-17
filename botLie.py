@@ -2,8 +2,10 @@ import random
 import time
 
 from irc.bot import SingleServerIRCBot as IRCBot
+
 import irc
 import util
+import speech
 
 irc.client.ServerConnection.buffer_class = irc.buffer.LenientDecodingLineBuffer
 
@@ -69,6 +71,21 @@ class Joueur:
 				return valeurs[index]
 		return None
 
+	def jeu(self):
+		'''
+		Renvoie le jeu actuel du joueur sous forme de chaîne de
+		caractères.
+		'''
+		self.cartes.sort()
+		if not self.cartes:
+			return speech.plus_cartes
+		
+		cartes = []
+		for index, carte in enumerate(self.cartes):
+			cartes.append('  %2d.  %s' % (index + 1, repr(carte)))
+		cartes = '\n'.join(cartes)
+		message = speech.cartes_restantes.format(len(self.cartes))
+		return message + '\n' + cartes
 
 
 class BotLie(IRCBot):
