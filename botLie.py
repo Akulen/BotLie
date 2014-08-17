@@ -2,6 +2,9 @@ import random
 import time
 
 from irc.bot import SingleServerIRCBot as IRCBot
+import irc
+
+irc.client.ServerConnection.buffer_class = irc.buffer.LenientDecodingLineBuffer
 
 
 
@@ -273,7 +276,7 @@ class BotLie(IRCBot):
 	
 	def __init__(self, chan):
 		super().__init__([("irc.smoothirc.net",
-		    6667, "123456")], "BotLie_", "Tu Mens !")
+		    6667)], "BotLie_", "Tu Mens !")
 		self.pubCommands = [("!init", self.ginit),
 							("!join", self.gjoin),
 							("!lie", self.glie),
@@ -288,6 +291,7 @@ class BotLie(IRCBot):
 		self.valeurs = ["As","Deux","Trois","Quatre","Cinq","Six","Sept","Huit","Neuf","Dix","Valet","Dame","Roi"]
 	
 	def on_welcome(self, serv, ev):
+		serv.privmsg('Mango', 'identify 123456')
 		serv.join(self.chan)
 	
 	def on_pubmsg(self, serv, ev):
