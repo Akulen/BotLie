@@ -201,7 +201,7 @@ class Jeu:
 	
 	def init(self, src, args):
 		if self.partie is None:
-			self.partie = Partie(self.pubmsg, self.privmsg, src)
+			self.partie = Partie(src)
 			self.pubmsg(speech.initier_partie)
 		else:
 			self.pubmsg(speech.partie_deja_initiee)
@@ -235,7 +235,8 @@ class Jeu:
 			self.pubmsg(speech.partie_non_initiee)
 	
 	def terminer():
-		self.partie.interrompre()
+		self.partie = None
+		self.pubmsg(speech.partie_finie)
 	
 	def cards(self, src, args):
 		if self.partie is not None:

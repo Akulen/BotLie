@@ -42,6 +42,7 @@ cartes_restantes = 'Il vous reste {} carte(s):'
 	incorrect = 'Incorrect.'
 	recolte_cartes = 'Vous vous etes pris {} carte/s.'
 
+partie_finie = 'La partie est terminee.'
 suivant = 'C\'est a {} de jouer.'
 gagnant = '{} a gagne.'
 tas_vide = 'Le tas est vide.'
