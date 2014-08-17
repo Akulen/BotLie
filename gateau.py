@@ -1,4 +1,5 @@
 
+from random import shuffle
 from threading import Thread
 
 
@@ -83,105 +84,84 @@ class Joueur:
 
 class Partie:
 	
-	def __init__(self, pubmsg, privmsg, createur):
-		'''
-		Il faut passer le nom du créateur pour qu'il soit
-		automatiquement ajouté à la liste des joueurs, et aussi pour
-		qu'il puisse (potentiellement) arrêter la partie dans une
-		future implémentation
-		'''
-		self.pubmsg = pubmsg
-		self.privmsg = privmsg
+	def __init__(self, createur):
 		self.createur = createur
-
-
-		'''
-		L'attribut d'instance valeur contient le type de carte en
-		cours.
-		Il peut être modifié directement.
-		'''
-		self.valeur = None
-	
-		'''
-		L'attribut d'instance joueur contient l'index du joueur qui
-		joue au tour actuel.
-		Ne doit pas être modifié.
-		'''
-		self.joueur = None
-
-		'''
-		L'attribut d'instance precedent contient l'index du joueur qui
-		a joué au tour d'avant, ou None si aucun joueur n'a encore
-		joué.
-		Ne doit pas être modifié.
-		'''
-		self.precedent = None
-
-		'''
-		L'attribut d'instance joueurs contient la liste des joueur
-		en jeu.
-		Ne doit pas être modifié directement.
-		'''
-		self.joueurs = []
-
-		'''
-		L'attribut mensonge est vrai si le joueur du tour précédent a
-		menti.
-		Ne doit pas être modifié.
-		'''
-		self.mensonge = False
-
+		self.commencee = False
+		self.pseudos = [createur]
 
 	def __bool__(self):
-		'''
-		Permet d'avoir la syntaxe:
-			if self.partie:
-				print('Une partie est en cours !')
-		dans la classe Jeu.
-		Le corps du if ne sera exécuté que si une partie est en cours,
-		conformément à la définition de cette méthode
-		'''
-	
+		return self.commencee
+
 	def ajouter(self, joueur):
-		'''
-		Ajoute un joueur à la partie.
-		Qu'il soit déjà dans la partie ou non relève de la classe
-		Partie, pas de la classe Jeu, donc il n'y a pas besoin de
-		l'implémenter dans la classe Jeu.
+		nouveau = joueur not in self.pseudos
+		if nouveau:
+			self.pseudos.append(joueur)
+		return nouveau
 
-		Renvoie True si le joueur a pu être ajouté, false sinon
-
-		'''
-	
 	def commencer(self):
-		'''
-		Démarre la partie.
-		Les cartes sont générées et distribuées ici.
-		'''
-	def interrompre(self):
-		'''
-		Stoppe la partie.
-		La partie ne peut être reprise, il faut en créer une autre.
-		'''
-	
+		cartes = []
+		for i in range(len(Cartes.VALEURS)):
+			for j in range(len(Cartes.COULEURS)):
+				cartes.append(Carte(i, j))
+		shuffle(cartes)
+
+		shuffle(self.pseudos)
+		self.joueurs = [Joueur(pseudo) for pseudo in self.pseudos]
+
+		while cartes:
+			for joueur in self.joueurs:
+				if not cartes:
+					break
+				joueur.cartes.append(cartes.pop())
+		
+		self.joueur = -1
+		self.precedent = -1
+		self.tas = []
+		self.mensonge = False
+		self.commencee = True
+
+	def joue(self, joueur):
+		try:
+			index = self.pseudos.index(joueur)
+		except ValueError:
+			return None
+		else:
+			return self.joueurs[index]
+
 	def poser(self, cartes):
-		'''
-		Indique que le joueur courant a posé l'ensemble des cartes
-		numérotées dans la liste cartes.
-		Renvoie une liste contenant le nom des cartes posées
-		'''
-	
+		self.mensonge = False
+		for index in cartes:
+			carte = self.joueurs[self.joueur].cartes[index]
+			if carte.valeur != self.valeur:
+				self.mensonge = True
+			self.tas.append(carte)
+			del self.joueurs[self.joueur].cartes[index]
+		return len(cartes)
+
 	def penaliser(self, joueur):
-		'''
-		Donne le tas au joueur à l'index joueur indiqué.
-		Renvoie une liste contenant le nom des cartes ajoutées
-		'''
-	
+		self.joueurs[joueur].cartes += self.tas
+		total = len(self.tas)
+		self.tas = []
+		return total
+
 	def suivant(self):
-		'''
-		Passe au joueur suivant pour le jeu.
-		Renvoie le joueur qui joue au tour actuel.
-		'''		
+		self.precedent = self.joueur
+		suivant = (self.joueur + 1) % len(self.joueurs)
+		return self.joueurs[self.joueur]
+
+	def gagnant(self):
+		if self.precedent < 0 or self.joueurs[self.precedent].cartes:
+			return False
+		return True
+
+	def _getvaleur(self):
+		return self._valeur
+	def _setvaleur(self, valeur):
+		if valeur.capitalize() not in Cartes.VALEURS:
+			raise ValueError('Card value \'{}\''.format(valeur))
+		self._valeur = valeur
+	
+	valeur = property(_getvaleur, _setvaleur)
 
 
 
