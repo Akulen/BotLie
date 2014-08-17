@@ -1,7 +1,9 @@
-import irclib
-import ircbot
 import random
 import time
+
+from irc.bot import SingleServerIRCBot as IRCBot
+
+
 
 def is_number(s):
 	try:
@@ -16,8 +18,8 @@ class Carte:
 		self.valeur = valeur
 		self.couleur = couleur
 	
-	def __cmp__(self, other):
-		return self.id.__cmp__(other.id)
+	def __lt__(self, other):
+		return self.id < other.id
 	
 	def __repr__(self):
 		return self.valeur+" de "+self.couleur
@@ -40,7 +42,7 @@ class Joueur:
 			else:
 				iCarte = iCarte+1
 
-class BotLie(ircbot.SingleServerIRCBot):
+class BotLie(IRCBot):
 	def ginit(self, serv, chan, user, msg):
 		if self.partie:
 			serv.privmsg(chan, "Il y a deja une partie en cours.")
@@ -151,7 +153,7 @@ class BotLie(ircbot.SingleServerIRCBot):
 				iJoueur = 0
 				while iJoueur < len(self.joueurs):
 					print(self.joueurs[iJoueur].nom)
-					if len(self.joueurs[iJoueur].carte) == 0:
+					if len(self.joueurs[iJoueur].cartes) == 0:
 						serv.privmsg(chan, self.joueurs[iJoueur].nom+" a gagne.")
 						del self.joueurs[iJoueur]
 					else:
@@ -270,7 +272,8 @@ class BotLie(ircbot.SingleServerIRCBot):
 			serv.privmsg(chan, "Il n'y a pas de partie en cours.")
 	
 	def __init__(self, chan):
-		ircbot.SingleServerIRCBot.__init__(self, [("chat.freenode.net", 6667, "123456")], "BotLie", "Tu Mens !")
+		super().__init__([("irc.smoothirc.net",
+		    6667, "123456")], "BotLie_", "Tu Mens !")
 		self.pubCommands = [("!init", self.ginit),
 							("!join", self.gjoin),
 							("!lie", self.glie),
@@ -288,9 +291,9 @@ class BotLie(ircbot.SingleServerIRCBot):
 		serv.join(self.chan)
 	
 	def on_pubmsg(self, serv, ev):
-		user = irclib.nm_to_n(ev.source())
-		chan = ev.target()
-		msg = ev.arguments()[0].lower()
+		user = ev.source.nick
+		chan = ev.target
+		msg = ev.arguments[0].lower()
 		
 		if msg[0] == '!':
 			self.pubCommand(serv, chan, user, msg.split(' '))
@@ -301,8 +304,8 @@ class BotLie(ircbot.SingleServerIRCBot):
 				fonction(serv, chan, user, msg)
 	
 	def on_privmsg(self, serv, ev):
-		user = irclib.nm_to_n(ev.source())
-		msg = ev.arguments()[0].lower()
+		user = ev.source.nick
+		msg = ev.arguments[0].lower()
 		
 		if msg[0] == '!':
 			self.privCommand(serv, user, msg.split(' '))
