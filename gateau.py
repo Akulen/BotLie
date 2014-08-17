@@ -146,14 +146,21 @@ class Partie:
 		self.tas = []
 		return total
 
-	def suivant(self):
+	def suivant(self, joueur = -1):
 		self.precedent = self.joueur
-		self.joueur = (self.joueur + 1) % len(self.joueurs)
+		if joueur < 0:
+			self.joueur = (self.joueur + 1) % len(self.joueurs)
+		else:
+			self.joueur = joueur
 		return self.joueurs[self.joueur]
 
 	def gagnant(self):
 		if self.precedent < 0 or self.joueurs[self.precedent].cartes:
 			return False
+		if self.precedent > 0:
+			del self.joueurs[self.precedent]
+			del self.pseudo[self.precedent]
+			self.precedent = self.precedent % len(self.pseudo)
 		return True
 
 	def _getvaleur(self):
@@ -211,7 +218,7 @@ class Jeu:
 								break
 							self.pubmsg('On a retire les 4 %s de %s.' % (valeur, joueur.pseudo))
 						self.pubmsg(repr(joueur))
-						self.cards(joueur.pseudo, [])
+						Thread(target=self.cards, args=(joueur.pseudo, [])).start()
 					self.pubmsg(speech.suivant.format(self.partie.suivant().pseudo))
 				else:
 					self.pubmsg(speech.manque_joueurs.format(len(self.partie.joueurs), 3))
@@ -308,17 +315,22 @@ class Jeu:
 							self.pubmsg(speech.correct)
 							self.privmsg(self.partie.pseudos[self.partie.precedent],
 										 speech.recolte_cartes.format(self.partie.penaliser(self.partie.precedent)))
+							if len(self.partie.joueurs) > 1:
+								self.pubmsg(speech.suivant.format(self.partie.suivant(src).pseudo))
+							else:
+								self.terminer()
+								return
 						else:
 							self.pubmsg(speech.incorrect)
 							if self.partie.gagnant():
 								self.pubmsg(speech.gagnant.format(self.partie.joueurs[self.partie.prec]))
 							self.privmsg(self.partie.pseudos[self.partie.joueur],
 										 speech.recolte_cartes.format(self.partie.penaliser(self.partie.joueur)))
-						if len(self.partie.joueurs) > 1:
-							self.pubmsg(speech.suivant.format(self.partie.suivant().pseudo))
-						else:
-							self.terminer()
-							return
+							if len(self.partie.joueurs) > 1:
+								self.pubmsg(speech.suivant.format(self.partie.suivant(self.partie.pseudo[self.partie.precedent]).pseudo))
+							else:
+								self.terminer()
+								return
 					else:
 						self.privmsg(src, speech.tas_vide)
 				else:
@@ -381,4 +393,5 @@ irc.client.ServerConnection.buffer_class = irc.buffer.LenientDecodingLineBuffer
 if __name__ == '__main__':
 	bot = Gateau(('irc.smoothirc.net', 6667), 'BotLie', '#YouLie')
 	bot.start()
+
 
