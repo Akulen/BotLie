@@ -73,3 +73,43 @@ class Joueur:
 		message = speech.cartes_restantes.format(len(self.cartes))
 		return message + '\n' + cartes
 
+
+class Gateau(irc.bot.SingleServerIRC):
+
+	def __init__(self, adresse, pseudo, canal):
+		self.adresse = adresse
+		self.pseudo = pseudo
+		self.canal = canal
+
+		super().__init([adresse], pseudo, pseudo)
+
+		self.jeu = Jeu(self.pubmsg, self.privmsg)
+
+	def on_welcome(self, serv, ev):
+		self.connection.join(self.canal)
+	
+	def on_message(self, serv, ev):
+		self.message(self, ev.source.nick, ev.arguments[0])
+
+	on_pubmsg  = on_message
+	on_privmsg = on_message
+
+	def get_version(self):
+		return speech.version
+
+
+	def message(self, src, msg):
+		msg = util.ascii(msg.strip().lower())
+		if msg and msg[0] == '!':
+			args = msg[1:].split()
+			if args:
+				self.jeu.commande(args[0], args[1:])
+
+	def pubmsg(self, msg):
+		self.privmsg(self.canal, msg)
+	
+	def privmsg(self, dst, msg):
+		msg = msg.split('\n')
+		for ligne in msg:
+			self.connection.privmsg(dst, ligne)
+
