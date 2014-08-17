@@ -1,38 +1,44 @@
-# Copyright (C) 1999--2002  Joel Rosdahl
-#
-# This library is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation; either
-# version 2.1 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
-#
-# Joel Rosdahl <joel@rosdahl.net>
-#
-# $Id: ircbot.py,v 1.23 2008/09/11 07:38:30 keltus Exp $
+# -*- coding: utf-8 -*-
 
-"""ircbot -- Simple IRC bot library.
+# Copyright (C) 1999-2002  Joel Rosdahl
+# Portions Copyright © 2011-2012 Jason R. Coombs
+
+"""
+Simple IRC bot library.
 
 This module contains a single-server IRC bot class that can be used to
 write simpler bots.
 """
 
+from __future__ import absolute_import
+
 import sys
-from UserDict import UserDict
 
-from irclib import SimpleIRCClient
-from irclib import nm_to_n, irc_lower, all_events
-from irclib import parse_channel_modes, is_channel
-from irclib import ServerConnectionError
+import irc.client
+import irc.modes
+from .dict import IRCDict
 
-class SingleServerIRCBot(SimpleIRCClient):
+class ServerSpec(object):
+    """
+    An IRC server specification.
+
+    >>> spec = ServerSpec('localhost')
+    >>> spec.host
+    'localhost'
+    >>> spec.port
+    6667
+    >>> spec.password
+
+    >>> spec = ServerSpec('127.0.0.1', 6697, 'fooP455')
+    >>> spec.password
+    'fooP455'
+    """
+    def __init__(self, host, port=6667, password=None):
+        self.host = host
+        self.port = port
+        self.password = password
+
+class SingleServerIRCBot(irc.client.SimpleIRCClient):
     """A single-server IRC bot class.
 
     The bot tries to reconnect if it is disconnected.
@@ -42,14 +48,16 @@ class SingleServerIRCBot(SimpleIRCClient):
     have operator or voice modes.  The "database" is kept in the
     self.channels attribute, which is an IRCDict of Channels.
     """
-    def __init__(self, server_list, nickname, realname, reconnection_interval=60):
+    def __init__(self, server_list, nickname, realname,
+            reconnection_interval=60, **connect_params):
         """Constructor for SingleServerIRCBot objects.
 
         Arguments:
 
-            server_list -- A list of tuples (server, port) that
-                           defines which servers the bot should try to
-                           connect to.
+            server_list -- A list of ServerSpec objects or tuples of
+                           parameters suitable for constructing ServerSpec
+                           objects. Defines the list of servers the bot will
+                           use (in order).
 
             nickname -- The bot's nickname.
 
@@ -60,22 +68,35 @@ class SingleServerIRCBot(SimpleIRCClient):
 
             dcc_connections -- A list of initiated/accepted DCC
             connections.
+
+            **connect_params -- parameters to pass through to the connect
+                                method.
         """
 
-        SimpleIRCClient.__init__(self)
+        super(SingleServerIRCBot, self).__init__()
+        self.__connect_params = connect_params
         self.channels = IRCDict()
-        self.server_list = server_list
+        self.server_list = [
+            ServerSpec(*server)
+                if isinstance(server, (tuple, list))
+                else server
+            for server in server_list
+        ]
+        assert all(
+            isinstance(server, ServerSpec)
+            for server in self.server_list
+        )
         if not reconnection_interval or reconnection_interval < 0:
-            reconnection_interval = 2**31
+            reconnection_interval = 2 ** 31
         self.reconnection_interval = reconnection_interval
 
         self._nickname = nickname
         self._realname = realname
         for i in ["disconnect", "join", "kick", "mode",
                   "namreply", "nick", "part", "quit"]:
-            self.connection.add_global_handler(i,
-                                               getattr(self, "_on_" + i),
-                                               -10)
+            self.connection.add_global_handler(i, getattr(self, "_on_" + i),
+                -20)
+
     def _connected_checker(self):
         """[Internal]"""
         if not self.connection.is_connected():
@@ -84,37 +105,32 @@ class SingleServerIRCBot(SimpleIRCClient):
             self.jump_server()
 
     def _connect(self):
-        """[Internal]"""
-        password = None
-        if len(self.server_list[0]) > 2:
-            password = self.server_list[0][2]
+        """
+        Establish a connection to the server at the front of the server_list.
+        """
+        server = self.server_list[0]
         try:
-            self.connect(self.server_list[0][0],
-                         self.server_list[0][1],
-                         self._nickname,
-                         password,
-                         ircname=self._realname)
-        except ServerConnectionError:
+            self.connect(server.host, server.port, self._nickname,
+                server.password, ircname=self._realname,
+                **self.__connect_params)
+        except irc.client.ServerConnectionError:
             pass
 
     def _on_disconnect(self, c, e):
-        """[Internal]"""
         self.channels = IRCDict()
         self.connection.execute_delayed(self.reconnection_interval,
                                         self._connected_checker)
 
     def _on_join(self, c, e):
-        """[Internal]"""
-        ch = e.target()
-        nick = nm_to_n(e.source())
+        ch = e.target
+        nick = e.source.nick
         if nick == c.get_nickname():
             self.channels[ch] = Channel()
         self.channels[ch].add_user(nick)
 
     def _on_kick(self, c, e):
-        """[Internal]"""
-        nick = e.arguments()[0]
-        channel = e.target()
+        nick = e.arguments[0]
+        channel = e.target
 
         if nick == c.get_nickname():
             del self.channels[channel]
@@ -122,10 +138,9 @@ class SingleServerIRCBot(SimpleIRCClient):
             self.channels[channel].remove_user(nick)
 
     def _on_mode(self, c, e):
-        """[Internal]"""
-        modes = parse_channel_modes(" ".join(e.arguments()))
-        t = e.target()
-        if is_channel(t):
+        modes = irc.modes.parse_channel_modes(" ".join(e.arguments))
+        t = e.target
+        if irc.client.is_channel(t):
             ch = self.channels[t]
             for mode in modes:
                 if mode[0] == "+":
@@ -138,36 +153,43 @@ class SingleServerIRCBot(SimpleIRCClient):
             pass
 
     def _on_namreply(self, c, e):
-        """[Internal]"""
+        """
+        e.arguments[0] == "@" for secret channels,
+                          "*" for private channels,
+                          "=" for others (public channels)
+        e.arguments[1] == channel
+        e.arguments[2] == nick list
+        """
 
-        # e.arguments()[0] == "@" for secret channels,
-        #                     "*" for private channels,
-        #                     "=" for others (public channels)
-        # e.arguments()[1] == channel
-        # e.arguments()[2] == nick list
+        ch_type, channel, nick_list = e.arguments
 
-        ch = e.arguments()[1]
-        for nick in e.arguments()[2].split():
-            if nick[0] == "@":
+        if channel == '*':
+            # User is not in any visible channel
+            # http://tools.ietf.org/html/rfc2812#section-3.2.5
+            return
+
+        for nick in nick_list.split():
+            nick_modes = []
+
+            if nick[0] in self.connection.features.prefix:
+                nick_modes.append(self.connection.features.prefix[nick[0]])
                 nick = nick[1:]
-                self.channels[ch].set_mode("o", nick)
-            elif nick[0] == "+":
-                nick = nick[1:]
-                self.channels[ch].set_mode("v", nick)
-            self.channels[ch].add_user(nick)
+
+            for mode in nick_modes:
+                self.channels[channel].set_mode(mode, nick)
+
+            self.channels[channel].add_user(nick)
 
     def _on_nick(self, c, e):
-        """[Internal]"""
-        before = nm_to_n(e.source())
-        after = e.target()
+        before = e.source.nick
+        after = e.target
         for ch in self.channels.values():
             if ch.has_user(before):
                 ch.change_nick(before, after)
 
     def _on_part(self, c, e):
-        """[Internal]"""
-        nick = nm_to_n(e.source())
-        channel = e.target()
+        nick = e.source.nick
+        channel = e.target
 
         if nick == c.get_nickname():
             del self.channels[channel]
@@ -175,8 +197,7 @@ class SingleServerIRCBot(SimpleIRCClient):
             self.channels[channel].remove_user(nick)
 
     def _on_quit(self, c, e):
-        """[Internal]"""
-        nick = nm_to_n(e.source())
+        nick = e.source.nick
         for ch in self.channels.values():
             if ch.has_user(nick):
                 ch.remove_user(nick)
@@ -208,7 +229,8 @@ class SingleServerIRCBot(SimpleIRCClient):
 
         Used when answering a CTCP VERSION request.
         """
-        return "ircbot.py by Joel Rosdahl <joel@rosdahl.net>"
+        return "Python irc.bot ({version})".format(
+            version=irc.client.VERSION_STRING)
 
     def jump_server(self, msg="Changing servers"):
         """Connect to a new server, possibly disconnecting from the current.
@@ -228,14 +250,13 @@ class SingleServerIRCBot(SimpleIRCClient):
         Replies to VERSION and PING requests and relays DCC requests
         to the on_dccchat method.
         """
-        if e.arguments()[0] == "VERSION":
-            c.ctcp_reply(nm_to_n(e.source()),
-                         "VERSION " + self.get_version())
-        elif e.arguments()[0] == "PING":
-            if len(e.arguments()) > 1:
-                c.ctcp_reply(nm_to_n(e.source()),
-                             "PING " + e.arguments()[1])
-        elif e.arguments()[0] == "DCC" and e.arguments()[1].split(" ", 1)[0] == "CHAT":
+        nick = e.source.nick
+        if e.arguments[0] == "VERSION":
+            c.ctcp_reply(nick, "VERSION " + self.get_version())
+        elif e.arguments[0] == "PING":
+            if len(e.arguments) > 1:
+                c.ctcp_reply(nick, "PING " + e.arguments[1])
+        elif e.arguments[0] == "DCC" and e.arguments[1].split(" ", 1)[0] == "CHAT":
             self.on_dccchat(c, e)
 
     def on_dccchat(self, c, e):
@@ -244,80 +265,20 @@ class SingleServerIRCBot(SimpleIRCClient):
     def start(self):
         """Start the bot."""
         self._connect()
-        SimpleIRCClient.start(self)
+        super(SingleServerIRCBot, self).start()
 
 
-class IRCDict:
-    """A dictionary suitable for storing IRC-related things.
-
-    Dictionary keys a and b are considered equal if and only if
-    irc_lower(a) == irc_lower(b)
-
-    Otherwise, it should behave exactly as a normal dictionary.
+class Channel(object):
     """
-
-    def __init__(self, dict=None):
-        self.data = {}
-        self.canon_keys = {}  # Canonical keys
-        if dict is not None:
-            self.update(dict)
-    def __repr__(self):
-        return repr(self.data)
-    def __cmp__(self, dict):
-        if isinstance(dict, IRCDict):
-            return cmp(self.data, dict.data)
-        else:
-            return cmp(self.data, dict)
-    def __len__(self):
-        return len(self.data)
-    def __getitem__(self, key):
-        return self.data[self.canon_keys[irc_lower(key)]]
-    def __setitem__(self, key, item):
-        if key in self:
-            del self[key]
-        self.data[key] = item
-        self.canon_keys[irc_lower(key)] = key
-    def __delitem__(self, key):
-        ck = irc_lower(key)
-        del self.data[self.canon_keys[ck]]
-        del self.canon_keys[ck]
-    def __iter__(self):
-        return iter(self.data)
-    def __contains__(self, key):
-        return self.has_key(key)
-    def clear(self):
-        self.data.clear()
-        self.canon_keys.clear()
-    def copy(self):
-        if self.__class__ is UserDict:
-            return UserDict(self.data)
-        import copy
-        return copy.copy(self)
-    def keys(self):
-        return self.data.keys()
-    def items(self):
-        return self.data.items()
-    def values(self):
-        return self.data.values()
-    def has_key(self, key):
-        return irc_lower(key) in self.canon_keys
-    def update(self, dict):
-        for k, v in dict.items():
-            self.data[k] = v
-    def get(self, key, failobj=None):
-        return self.data.get(key, failobj)
-
-
-class Channel:
-    """A class for keeping information about an IRC channel.
-
-    This class can be improved a lot.
+    A class for keeping information about an IRC channel.
     """
 
     def __init__(self):
         self.userdict = IRCDict()
         self.operdict = IRCDict()
         self.voiceddict = IRCDict()
+        self.ownerdict = IRCDict()
+        self.halfopdict = IRCDict()
         self.modes = {}
 
     def users(self):
@@ -333,6 +294,14 @@ class Channel:
         mode set in the channel."""
         return self.voiceddict.keys()
 
+    def owners(self):
+        """Returns an unsorted list of the channel's owners."""
+        return self.ownerdict.keys()
+
+    def halfops(self):
+        """Returns an unsorted list of the channel's half-operators."""
+        return self.halfopdict.keys()
+
     def has_user(self, nick):
         """Check whether the channel has a user."""
         return nick in self.userdict
@@ -345,6 +314,14 @@ class Channel:
         """Check whether a user has voice mode set in the channel."""
         return nick in self.voiceddict
 
+    def is_owner(self, nick):
+        """Check whether a user has owner status in the channel."""
+        return nick in self.ownerdict
+
+    def is_halfop(self, nick):
+        """Check whether a user has half-operator status in the channel."""
+        return nick in self.halfopdict
+
     def add_user(self, nick):
         self.userdict[nick] = 1
 
@@ -354,14 +331,15 @@ class Channel:
                 del d[nick]
 
     def change_nick(self, before, after):
-        self.userdict[after] = 1
-        del self.userdict[before]
+        self.userdict[after] = self.userdict.pop(before)
         if before in self.operdict:
-            self.operdict[after] = 1
-            del self.operdict[before]
+            self.operdict[after] = self.operdict.pop(before)
         if before in self.voiceddict:
-            self.voiceddict[after] = 1
-            del self.voiceddict[before]
+            self.voiceddict[after] = self.voiceddict.pop(before)
+
+    def set_userdetails(self, nick, details):
+        if nick in self.userdict:
+            self.userdict[nick] = details
 
     def set_mode(self, mode, value=None):
         """Set mode on the channel.
@@ -376,6 +354,10 @@ class Channel:
             self.operdict[value] = 1
         elif mode == "v":
             self.voiceddict[value] = 1
+        elif mode == "q":
+            self.ownerdict[value] = 1
+        elif mode == "h":
+            self.halfopdict[value] = 1
         else:
             self.modes[mode] = value
 
@@ -393,6 +375,10 @@ class Channel:
                 del self.operdict[value]
             elif mode == "v":
                 del self.voiceddict[value]
+            elif mode == "q":
+                del self.ownerdict[value]
+            elif mode == "h":
+                del self.halfopdict[value]
             else:
                 del self.modes[mode]
         except KeyError:
@@ -424,15 +410,9 @@ class Channel:
 
     def limit(self):
         if self.has_limit():
-            return self.modes[l]
+            return self.modes["l"]
         else:
             return None
 
     def has_key(self):
         return self.has_mode("k")
-
-    def key(self):
-        if self.has_key():
-            return self.modes["k"]
-        else:
-            return None
