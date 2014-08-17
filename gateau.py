@@ -76,6 +76,9 @@ class Joueur:
 		cartes = '\n'.join(cartes)
 		message = speech.cartes_restantes.format(len(self.cartes))
 		return message + '\n' + cartes
+	
+	def __repr__(self):
+		return '{}({})'.format(self.pseudo, len(self.cartes))
 
 
 
@@ -161,14 +164,167 @@ class Partie:
 	valeur = property(_getvaleur, _setvaleur)
 
 
+
 class Jeu:
 
+	COMMANDES = ['init', 'join', 'start', 'cards', 'value', 'place', 'lie', 'help']
+	
 	def __init__(self, pubmsg, privmsg):
 		self.pubmsg = pubmsg
-		self.privmsg = pubmsg
+		self.privmsg = privmsg
 
 		self.partie = None
-
+	
+	def commande(self, src, nom, args):
+		if nom in Jeu.COMMANDES:
+			getattr(self, nom)(src, args)
+	
+	def init(self, src, args):
+		if self.partie is None:
+			self.partie = Partie(src)
+			self.pubmsg(speech.initier_partie)
+		else:
+			self.pubmsg(speech.partie_deja_initiee)
+	
+	def join(self, src, args):
+		if self.partie is not None:
+			if self.partie.joue(src) is None:
+				if self.partie.ajouter(src):
+					self.pubmsg(speech.ajout.format(src))
+				else:
+					self.pubmsg(speech.ERREUR_ajout.format(src))
+			else:
+				self.pubmsg(speech.deja_ajoute.format(src))
+		else:
+			self.pubmsg(speech.partie_non_initiee)
+	
+	def start(self, src, args):
+		if self.partie is not None:
+			if !self.partie:
+				if len(self.partie.joueurs) > 2:
+					self.partie.commencer():
+					self.pubmsg(speech.commencer_partie)
+					for joueur in self.partie.joueurs:
+						self.pubmsg(repr(joueur))
+						self.cards(joueur.pseudo, [])
+				else:
+					self.pubmsg(speech.manque_joueurs.format(len(self.partie.joueurs), 3))
+			else:
+				self.privmsg(src, speech.partie_deja_commencee)
+		else:
+			self.pubmsg(speech.partie_non_initiee)
+	
+	def terminer():
+		self.partie = None
+		self.pubmsg(speech.partie_finie)
+	
+	def cards(self, src, args):
+		if self.partie is not None:
+			if self.partie:
+				joueur = self.partie.joue(src)
+				if joueur is not None:
+					self.privmsg(src, joueur.jeu())
+				else:
+					self.privmsg(src, speech.ne_joue_pas)
+			else:
+				self.privmsg(src, speech.partie_non_commencee)
+		else:
+			self.privmsg(src, speech.partie_non_initiee)
+	
+	def value(self, src, args):
+		if self.partie is not None:
+			if self.partie:
+				joueur = self.partie.joue(src)
+				if joueur is not None:
+					if joueur.pseudo == self.partie.pseudos[self.partie.joueur]:
+						if len(args):
+							if self.partie.precedent == -1:
+								if args[0] in Carte.VALEURS:
+									self.partie.valeur = args[0]
+									self.privmsg(src, speech.valeur_valide.format(args[0]))
+								else:
+									self.privmsg(src, speech.valeur_invalide)
+							else:
+								self.privmsg(src, speech.valeur_deja_definie)
+						else:
+							self.privmsg(src, speech.args_manquants)
+					else:
+						self.privmsg(src, speech.non_courrant)
+				else:
+					self.privmsg(src, speech.ne_joue_pas)
+			else:
+				self.privmsg(src, speech.partie_non_commencee)
+		else:
+			self.privmsg(src, speech.partie_non_initiee)
+	
+	def place(self, src, args):
+		if self.partie is not None:
+			if self.partie:
+				joueur = self.partie.joue(src)
+				if joueur is not None:
+					if joueur.pseudo == self.partie.pseudos[self.partie.joueur]:
+						if len(args):
+							if contient_nombres(args):
+								if util.dans_intervalle(args, 1, len(joueur.cartes)):
+									if !util.doublon(args):
+										if self.partie.gagnant():
+											self.pubmsg(speech.gagnant.format(self.partie.joueurs[self.partie.prec]))
+										if len(self.partie.joueurs) > 1:
+											self.pubmsg(speech.suivant.format(self.partie.suivant().pseudo))
+										else:
+											self.terminer()
+											return
+										self.pubmsg(speech.poser_cartes.format(src, self.partie.poser(args), self.partie.valeur))
+										self.pubmsg(speech.suivant.format(self.partie.suivant().pseudo))
+									else:
+										self.privmsg(src, speech.carte_double)
+								else:
+									self.privmsg(src, speech.carte_invalide)
+							else:
+								self.privmsg(src, speech.arg_invalide)
+						else:
+							self.privmsg(src, speech.args_manquants)
+					else:
+						self.privmsg(src, speech.non_courrant)
+				else:
+					self.privmsg(src, speech.ne_joue_pas)
+			else:
+				self.privmsg(src, speech.partie_non_commencee)
+		else:
+			self.privmsg(src, speech.partie_non_initiee)
+		
+	def lie(self, src, args):
+		if self.partie is not None:
+			if self.partie:
+				joueur = self.partie.joue(src)
+				if joueur is not None:
+					if self.partie.precedent != -1:
+						if self.partie.mensonge:
+							self.pubmsg(speech.correct)
+							self.privmsg(self.partie.pseudos[self.partie.precedent],
+										 speech.recolte_cartes.format(self.partie.penaliser(self.partie.precedent)))
+						else:
+							self.pubmsg(speech.incorrect)
+							if self.partie.gagnant():
+								self.pubmsg(speech.gagnant.format(self.partie.joueurs[self.partie.prec]))
+							self.privmsg(self.partie.pseudos[self.partie.joueur],
+										 speech.recolte_cartes.format(self.partie.penaliser(self.partie.joueur)))
+						if len(self.partie.joueurs) > 1:
+							self.pubmsg(speech.suivant.format(self.partie.suivant().pseudo))
+						else:
+							self.terminer()
+							return
+					else:
+						self.privmsg(src, speech.tas_vide)
+				else:
+					self.privmsg(src, speech.ne_joue_pas)
+			else:
+				self.privmsg(src, speech.partie_non_commencee)
+		else:
+			self.privmsg(src, speech.partie_non_initiee)
+	
+	def help(self, src, args):
+		self.pubmsg("The cake is a lie. https://www.youtube.com/watch?v=Y6ljFaKRTrI")
 
 
 
@@ -202,7 +358,7 @@ class Gateau(irc.bot.SingleServerIRC):
 			args = msg[1:].split()
 			if args:
 				target = self.jeu.commande
-				args = (args[0], args[1:])
+				args = (src, args[0], args[1:])
 				Thread(target=target, args=args).start()
 
 	def pubmsg(self, msg):
