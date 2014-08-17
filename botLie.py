@@ -3,6 +3,7 @@ import time
 
 from irc.bot import SingleServerIRCBot as IRCBot
 import irc
+import util
 
 irc.client.ServerConnection.buffer_class = irc.buffer.LenientDecodingLineBuffer
 
@@ -45,22 +46,30 @@ class Carte:
 
 
 class Joueur:
-	def __init__(self, nom):
-		self.nom = nom
-		self.cartes = []
+
+	def __init__(self, pseudo, cartes=[]):
+		self.pseudo = pseudo
+		self.cartes = cartes
 	
-	def check(self, serv, chan):
+	def doublons(self):
+		'''
+		Regarde s'il existe des doublons (en vrai, 4 cartes de valeurs
+		identiques) dans le jeu du joueur, et les supprime.
+
+		Renvoie le nom de la valeur en doublon, ou None sinon.
+
+		Doit être appelée plusieurs fois pour éliminer l'ensemble des
+		doublons.
+		'''
 		self.cartes.sort()
-		iCarte = 0
-		while iCarte < len(self.cartes)-3:
-			if self.cartes[iCarte].valeur == self.cartes[iCarte+1].valeur and self.cartes[iCarte].valeur == self.cartes[iCarte+2].valeur and self.cartes[iCarte].valeur == self.cartes[iCarte+3].valeur:
-				serv.privmsg(chan, "On a retire quatre "+self.cartes[iCarte].valeur+" a "+self.nom+".")
-				del self.cartes[iCarte+3]
-				del self.cartes[iCarte+2]
-				del self.cartes[iCarte+1]
-				del self.cartes[iCarte]
-			else:
-				iCarte = iCarte+1
+		valeurs = [carte.valeur for carte in self.cartes]
+		for index in range(len(valeurs) - 3):
+			if util.uniforme(valeurs[index:index + 3]):
+				del self.cartes[index:index + 3]
+				return valeurs[index]
+		return None
+
+
 
 class BotLie(IRCBot):
 	def ginit(self, serv, chan, user, msg):
@@ -125,7 +134,11 @@ class BotLie(IRCBot):
 					serv.privmsg(chan, "Distribution ...")
 					
 					for joueur in self.joueurs:
-						joueur.check(serv, chan)
+						while True:
+							valeur = joueur.doublons()
+							if not valeur:
+								break
+							serv.privmsg(chan, 'On a retire quatre ' + valeur + ' a ' + joueur.pseudo)
 						self.gshowCartes(serv, joueur)
 					
 					self.curCarte = None
