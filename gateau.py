@@ -1,4 +1,7 @@
 
+from threading import Thread
+
+
 import irc
 
 import util
@@ -218,7 +221,9 @@ class Gateau(irc.bot.SingleServerIRC):
 		if msg and msg[0] == '!':
 			args = msg[1:].split()
 			if args:
-				self.jeu.commande(args[0], args[1:])
+				target = self.jeu.commande
+				args = (args[0], args[1:])
+				Thread(target=target, args=args).start()
 
 	def pubmsg(self, msg):
 		self.privmsg(self.canal, msg)
