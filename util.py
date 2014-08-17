@@ -41,6 +41,6 @@ def dans_intervalle(tab, mini, maxi):
 def doublon(tab):
 	tab.sort()
 	for index, val in enumerate(tab[1:]):
-		if val == tab[index-1]:
+		if val == tab[index]:
 			return True
 	return False

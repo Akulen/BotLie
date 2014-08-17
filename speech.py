@@ -10,7 +10,7 @@ cartes_restantes = 'Il vous reste {} carte(s):'
 
 	# Jeu.init
 	
-initier_partie = 'Vous avez initie une partie de "Tu Mens !".\n Veillez rejoindre la partie en utilisant "!join".\n Une fois que vous etes prets a commencer, tapez "!start".'
+initier_partie = 'Vous avez initie une partie de "Tu Mens !".\nVeillez rejoindre la partie en utilisant "!join".\nUne fois que vous etes prets a commencer, tapez "!start".'
 
 	# Jeu.join
 	
@@ -30,7 +30,7 @@ valeur_valide = 'Vous placez des {}.'
 
 	# Jeu.place
 	
-poser_cartes = '{} a place {} {}."'
+poser_cartes = '{} a place {} {}.'
 carte_invalide = 'Vous avez specifie une/des carte/s que vous n\'avez pas.'
 carte_double = 'Vous avez renseigne plusieurs fois la meme carte.'
 
@@ -45,7 +45,7 @@ suivant = 'C\'est a {} de jouer.'
 gagnant = '{} a gagne.'
 tas_vide = 'Le tas est vide.'
 non_courrant = 'Ce n\'est pas votre tour.'
-args_manquant = 'Il manque un/des argument/s.'
+args_manquants = 'Il manque un/des argument/s.'
 args_invalide = 'Vous avez rentre un/des argument/s invalide/s.'
 ne_joue_pas = 'Vous ne jouez pas.'
 partie_deja_initiee = 'Vous avez deja initie une partie.'
