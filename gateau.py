@@ -74,6 +74,121 @@ class Joueur:
 		return message + '\n' + cartes
 
 
+
+class Partie:
+	
+	def __init__(self, pubmsg, privmsg, createur):
+		'''
+		Il faut passer le nom du créateur pour qu'il soit
+		automatiquement ajouté à la liste des joueurs, et aussi pour
+		qu'il puisse (potentiellement) arrêter la partie dans une
+		future implémentation
+		'''
+		self.pubmsg = pubmsg
+		self.privmsg = privmsg
+		self.createur = createur
+
+
+		'''
+		L'attribut d'instance valeur contient le type de carte en
+		cours.
+		Il peut être modifié directement.
+		'''
+		self.valeur = None
+	
+		'''
+		L'attribut d'instance joueur contient l'index du joueur qui
+		joue au tour actuel.
+		Ne doit pas être modifié.
+		'''
+		self.joueur = None
+
+		'''
+		L'attribut d'instance precedent contient l'index du joueur qui
+		a joué au tour d'avant, ou None si aucun joueur n'a encore
+		joué.
+		Ne doit pas être modifié.
+		'''
+		self.precedent = None
+
+		'''
+		L'attribut d'instance joueurs contient la liste des joueur
+		en jeu.
+		Ne doit pas être modifié directement.
+		'''
+		self.joueurs = []
+
+		'''
+		L'attribut mensonge est vrai si le joueur du tour précédent a
+		menti.
+		Ne doit pas être modifié.
+		'''
+		self.mensonge = False
+
+
+	def __bool__(self):
+		'''
+		Permet d'avoir la syntaxe:
+			if self.partie:
+				print('Une partie est en cours !')
+		dans la classe Jeu.
+		Le corps du if ne sera exécuté que si une partie est en cours,
+		conformément à la définition de cette méthode
+		'''
+	
+	def ajouter(self, joueur):
+		'''
+		Ajoute un joueur à la partie.
+		Qu'il soit déjà dans la partie ou non relève de la classe
+		Partie, pas de la classe Jeu, donc il n'y a pas besoin de
+		l'implémenter dans la classe Jeu.
+
+		Renvoie True si le joueur a pu être ajouté, false sinon
+
+		'''
+	
+	def commencer(self):
+		'''
+		Démarre la partie.
+		Les cartes sont générées et distribuées ici.
+		'''
+	def interrompre(self):
+		'''
+		Stoppe la partie.
+		La partie ne peut être reprise, il faut en créer une autre.
+		'''
+	
+	def poser(self, cartes):
+		'''
+		Indique que le joueur courant a posé l'ensemble des cartes
+		numérotées dans la liste cartes.
+		Renvoie une liste contenant le nom des cartes posées
+		'''
+	
+	def penaliser(self, joueur):
+		'''
+		Donne le tas au joueur à l'index joueur indiqué.
+		Renvoie une liste contenant le nom des cartes ajoutées
+		'''
+	
+	def suivant(self):
+		'''
+		Passe au joueur suivant pour le jeu.
+		Renvoie le joueur qui joue au tour actuel.
+		'''		
+
+
+class Jeu:
+
+	def __init__(self, pubmsg, privmsg):
+		self.pubmsg = pubmsg
+		self.privmsg = pubmsg
+
+		self.partie = None
+
+
+
+
 class Gateau(irc.bot.SingleServerIRC):
 
 	def __init__(self, adresse, pseudo, canal):
@@ -81,7 +196,7 @@ class Gateau(irc.bot.SingleServerIRC):
 		self.pseudo = pseudo
 		self.canal = canal
 
-		super().__init([adresse], pseudo, pseudo)
+		super().__init__([adresse], pseudo, pseudo)
 
 		self.jeu = Jeu(self.pubmsg, self.privmsg)
 
