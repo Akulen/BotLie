@@ -26,3 +26,21 @@ def ascii(msg):
 		msg = msg.replace(accent, eq)
 	return msg
 
+def contient_nombres(tab):
+	try:
+		tab = [int(val) for val in tab]
+		return True
+	except ValueError:
+		return False
+
+def dans_intervalle(tab, mini, maxi):
+	if min(tab) < mini or max(tab) > maxi:
+		return False
+	return True
+
+def doublon(tab):
+	tab.sort()
+	for index, val in enumerate(tab[1:]):
+		if val == tab[index-1]:
+			return True
+	return False
