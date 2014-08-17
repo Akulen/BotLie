@@ -15,17 +15,34 @@ def is_number(s):
 	except ValueError:
 		return -1
 
+
 class Carte:
-	def __init__(self, id, valeur, couleur):
-		self.id = id
-		self.valeur = valeur
-		self.couleur = couleur
+
+	VALEURS = ['As', 'Deux', 'Trois', 'Quatre', 'Cinq', 'Six', 'Sept',
+		   'Huit', 'Neuf', 'Dix', 'Valet', 'Dame', 'Roi']
+	COULEURS = ['Carreau', 'Coeur', 'Pique', 'Trèfle']
+
+
+	def __init__(self, valeur, couleur):
+		self._valeur = valeur
+		self._couleur = couleur
 	
 	def __lt__(self, other):
-		return self.id < other.id
+		if self._valeur == other._valeur:
+			return self._couleur < other._couleur
+		return self._valeur < other._valeur
 	
 	def __repr__(self):
-		return self.valeur+" de "+self.couleur
+		return '%s de %s' % (self.valeur, self.couleur)
+	
+	@property
+	def valeur(self):
+		return Carte.VALEURS[self._valeur]
+	
+	@property
+	def couleur(self):
+		return Carte.COULEURS[self._couleur]
+
 
 class Joueur:
 	def __init__(self, nom):
@@ -93,13 +110,11 @@ class BotLie(IRCBot):
 					for joueur in self.joueurs:
 						serv.privmsg(chan, joueur.nom)
 					self.cartes = []
-					iCarte = 0
-					for valeur in self.valeurs:
-						for couleur in self.couleurs:
-							self.cartes.append(Carte(iCarte, valeur, couleur))
-							iCarte += 1
+					for i in range(len(Carte.VALEURS)):
+						for j in range(len(Carte.COULEURS)):
+							self.cartes.append(Carte(i, j))
 					random.shuffle(self.cartes)
-					
+
 					while len(self.cartes):
 						for joueur in self.joueurs:
 							if len(self.cartes) == 0:
@@ -200,7 +215,7 @@ class BotLie(IRCBot):
 				serv.privmsg(user, "Cette valeur n'existe pas.")
 				print(msg[1])
 				return
-			self.tempCarte = Carte(0, msg[1].capitalize(), "")
+			self.tempCarte = Carte(Carte.VALEURS.index(msg[1].capitalize()), 0)
 			serv.privmsg(user, "Vous placez des "+self.tempCarte.valeur+".")
 		else:
 			serv.privmsg(user, "Il n'y a pas de partie en cours.")
@@ -320,4 +335,5 @@ class BotLie(IRCBot):
 				fonction(serv, user, msg)
 
 if __name__ == "__main__":
-	BotLie("#YouLie").start()
+	bot = BotLie("#YouLie")
+	bot.start()
