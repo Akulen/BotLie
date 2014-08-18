@@ -331,7 +331,7 @@ class Jeu:
 				if joueur is not None:
 					if self.partie.precedent != -1:
 						if self.partie.mensonge:
-							self.pubmsg(speech.correct)
+							self.pubmsg(speech.correct.format(src, self.partie.pseudos[self.partie.precedent]))
 							if len(self.partie.joueurs[self.partie.precedent].cartes) > 10:
 								self.privmsg(self.partie.pseudos[self.partie.precedent],
 											 speech.recolte_cartes_soft.format(self.partie.penaliser(self.partie.precedent)))
@@ -351,7 +351,7 @@ class Jeu:
 								self.terminer()
 								return
 						else:
-							self.pubmsg(speech.incorrect)
+							self.pubmsg(speech.incorrect.format(self.partie.pseudos[self.partie.precedent], src))
 							if self.partie.gagnant():
 								self.pubmsg(speech.gagnant.format(self.partie.joueurs[self.partie.precedent]))
 							if len(self.partie.joue(src).cartes) > 10:
