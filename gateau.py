@@ -333,7 +333,8 @@ class Jeu:
 						if self.partie.mensonge:
 							self.pubmsg(speech.correct)
 							if len(self.partie.joueurs[self.partie.precedent].cartes) > 10:
-							
+								self.privmsg(self.partie.pseudos[self.partie.precedent],
+											 speech.recolte_cartes_soft.format(self.partie.penaliser(self.partie.precedent)))
 							else:
 								self.privmsg(self.partie.pseudos[self.partie.precedent],
 											 speech.recolte_cartes_dur.format(self.partie.penaliser(self.partie.precedent)))
