@@ -354,8 +354,12 @@ class Jeu:
 							self.pubmsg(speech.incorrect)
 							if self.partie.gagnant():
 								self.pubmsg(speech.gagnant.format(self.partie.joueurs[self.partie.precedent]))
-							self.privmsg(src,
-										 speech.recolte_cartes.format(self.partie.penaliser(self.partie.joueurId(src))))
+							if len(self.partie.joue(src).cartes) > 10:
+								self.privmsg(src,
+											 speech.recolte_cartes_soft.format(self.partie.penaliser(self.partie.joueurId(src))))
+							else:
+								self.privmsg(src,
+											 speech.recolte_cartes_dur.format(self.partie.penaliser(self.partie.joueurId(src))))
 							joueur = self.partie.joue(src)
 							while True:
 								valeur = joueur.doublons()
