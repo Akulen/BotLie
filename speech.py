@@ -27,18 +27,22 @@ commencer_partie = 'Vous avez lance la partie, je distribue a :'
 	
 valeur_invalide = 'Cette valeur n\'existe pas.'
 valeur_valide = 'Vous placez des {}.'
+valeur_deja_definie = 'La valeur est deja definie.'
 
 	# Jeu.place
 	
 poser_cartes = '{} a place {} {}.'
 carte_invalide = 'Vous avez specifie une/des carte/s que vous n\'avez pas.'
 carte_double = 'Vous avez renseigne plusieurs fois la meme carte.'
+valeur_non_definie = 'La valeur n\'a pas ete definie'
+nouveau_tour = 'Nouveau tour, vous jouez des {}.'
 
 	# Jeu.lie
 	
 correct = 'Correct.'
 incorrect = 'Incorrect.'
-recolte_cartes = 'Vous vous etes pris {} carte/s.'
+recolte_cartes_dur = 'BRAHH ! Vous vous etes pris {} carte/s.'
+recolte_cartes_soft = 'Tu vas y arriver, ça fait rien si tu t\'es pris {} cartes. Tu restes fabuleux/se'
 
 partie_finie = 'La partie est terminee.'
 suivant = 'C\'est a {} de jouer.'

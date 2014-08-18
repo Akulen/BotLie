@@ -55,7 +55,7 @@ class Joueur:
 		'''
 		self.cartes.sort()
 		valeurs = [carte.valeur for carte in self.cartes]
-		for index in range(len(valeurs) - 3):
+		for index in range(len(valeurs) - 4):
 			if util.uniforme(valeurs[index:index + 3]):
 				del self.cartes[index:index + 3]
 				return valeurs[index]
@@ -121,6 +121,7 @@ class Partie:
 		self.tas = []
 		self.mensonge = False
 		self.commencee = True
+		self._valeur = None
 
 	def joue(self, joueur):
 		try:
@@ -133,17 +134,25 @@ class Partie:
 	def poser(self, cartes):
 		self.mensonge = False
 		for index in cartes:
-			carte = self.joueurs[self.joueur].cartes[index]
+			carte = self.joueurs[self.joueur].cartes[index-1]
 			if carte.valeur != self.valeur:
 				self.mensonge = True
 			self.tas.append(carte)
-			del self.joueurs[self.joueur].cartes[index]
+			del self.joueurs[self.joueur].cartes[index-1]
 		return len(cartes)
-
+	
+	def joueurId(self, src):
+		for index, pseudo in enumerate(self.pseudos):
+			if pseudo == src:
+				return index
+		return -1
+	
 	def penaliser(self, joueur):
 		self.joueurs[joueur].cartes += self.tas
 		total = len(self.tas)
 		self.tas = []
+		self.joueur = -1
+		self._valeur = None
 		return total
 
 	def suivant(self, joueur = -1):
@@ -195,13 +204,16 @@ class Jeu:
 	
 	def join(self, src, args):
 		if self.partie is not None:
-			if self.partie.joue(src) is None:
-				if self.partie.ajouter(src):
-					self.pubmsg(speech.ajout.format(src))
+			if not self.partie:
+				if self.partie.joue(src) is None:
+					if self.partie.ajouter(src):
+						self.pubmsg(speech.ajout.format(src))
+					else:
+						self.pubmsg(speech.ERREUR_ajout.format(src))
 				else:
-					self.pubmsg(speech.ERREUR_ajout.format(src))
+					self.pubmsg(speech.deja_ajoute.format(src))
 			else:
-				self.pubmsg(speech.deja_ajoute.format(src))
+				self.privmsg(src, speech.partie_deja_commencee)
 		else:
 			self.pubmsg(speech.partie_non_initiee)
 	
@@ -219,7 +231,7 @@ class Jeu:
 							self.pubmsg('On a retire les 4 %s de %s.' % (valeur, joueur.pseudo))
 						self.pubmsg(repr(joueur))
 						Thread(target=self.cards, args=(joueur.pseudo, [])).start()
-					self.pubmsg(speech.suivant.format(self.partie.suivant().pseudo))
+					self.pubmsg(speech.suivant.format(repr(self.partie.suivant())))
 				else:
 					self.pubmsg(speech.manque_joueurs.format(len(self.partie.joueurs), 3))
 			else:
@@ -231,7 +243,7 @@ class Jeu:
 		self.partie = None
 		self.pubmsg(speech.partie_finie)
 	
-	def cards(self, src, args):
+	def cards(self, src, args = []):
 		if self.partie is not None:
 			if self.partie:
 				joueur = self.partie.joue(src)
@@ -276,26 +288,33 @@ class Jeu:
 				joueur = self.partie.joue(src)
 				if joueur is not None:
 					if joueur.pseudo == self.partie.pseudos[self.partie.joueur]:
-						if len(args):
-							if util.contient_nombres(args):
-								args = [int(val) for val in args]
-								if util.dans_intervalle(args, 1, len(joueur.cartes)):
-									if not util.doublon(args):
-										if self.partie.gagnant():
-											self.pubmsg(speech.gagnant.format(self.partie.joueurs[self.partie.prec]))
-										if len(self.partie.joueurs) > 1:
-											self.pubmsg(speech.poser_cartes.format(src, self.partie.poser(args), self.partie.valeur))
-											self.pubmsg(speech.suivant.format(self.partie.suivant().pseudo))
+						if self.partie.valeur is not None:
+							if len(args):
+								if util.contient_nombres(args):
+									args = [int(val) for val in args]
+									if util.dans_intervalle(args, 1, len(joueur.cartes)):
+										if not util.doublon(args):
+											if self.partie.gagnant():
+												self.pubmsg(speech.gagnant.format(self.partie.joueurs[self.partie.precedent]))
+											if len(self.partie.joueurs) > 1:
+												args.sort(reverse=True)
+												if self.partie.precedent == -1:
+													self.pubmsg(speech.nouveau_tour.format(self.partie.valeur))
+												self.pubmsg(speech.poser_cartes.format(src, self.partie.poser(args), self.partie.valeur))
+												self.pubmsg(speech.suivant.format(repr(self.partie.suivant())))
+												self.cards(self.partie.pseudos[self.partie.joueur])
+											else:
+												self.terminer()
 										else:
-											self.terminer()
+											self.privmsg(src, speech.carte_double)
 									else:
-										self.privmsg(src, speech.carte_double)
+										self.privmsg(src, speech.carte_invalide)
 								else:
-									self.privmsg(src, speech.carte_invalide)
+									self.privmsg(src, speech.args_invalide)
 							else:
-								self.privmsg(src, speech.arg_invalide)
+								self.privmsg(src, speech.args_manquants)
 						else:
-							self.privmsg(src, speech.args_manquants)
+							self.privmsg(src, speech.valeur_non_definie)
 					else:
 						self.privmsg(src, speech.non_courrant)
 				else:
@@ -313,21 +332,38 @@ class Jeu:
 					if self.partie.precedent != -1:
 						if self.partie.mensonge:
 							self.pubmsg(speech.correct)
-							self.privmsg(self.partie.pseudos[self.partie.precedent],
-										 speech.recolte_cartes.format(self.partie.penaliser(self.partie.precedent)))
+							if len(self.partie.joueurs[self.partie.precedent].cartes) > 10:
+							
+							else:
+								self.privmsg(self.partie.pseudos[self.partie.precedent],
+											 speech.recolte_cartes_dur.format(self.partie.penaliser(self.partie.precedent)))
+							joueur = self.partie.joueurs[self.partie.precedent]
+							while True:
+								valeur = joueur.doublons()
+								if not valeur:
+									break
+								self.pubmsg('On a retire les 4 %s de %s.' % (valeur, joueur.pseudo))
 							if len(self.partie.joueurs) > 1:
-								self.pubmsg(speech.suivant.format(self.partie.suivant(src).pseudo))
+								self.pubmsg(speech.suivant.format(repr(self.partie.suivant(self.partie.joueurId(src)))))
+								self.cards(self.partie.pseudos[self.partie.joueur])
 							else:
 								self.terminer()
 								return
 						else:
 							self.pubmsg(speech.incorrect)
 							if self.partie.gagnant():
-								self.pubmsg(speech.gagnant.format(self.partie.joueurs[self.partie.prec]))
-							self.privmsg(self.partie.pseudos[self.partie.joueur],
-										 speech.recolte_cartes.format(self.partie.penaliser(self.partie.joueur)))
+								self.pubmsg(speech.gagnant.format(self.partie.joueurs[self.partie.precedent]))
+							self.privmsg(src,
+										 speech.recolte_cartes.format(self.partie.penaliser(self.partie.joueurId(src))))
+							joueur = self.partie.joue(src)
+							while True:
+								valeur = joueur.doublons()
+								if not valeur:
+									break
+								self.pubmsg('On a retire les 4 %s de %s.' % (valeur, joueur.pseudo))
 							if len(self.partie.joueurs) > 1:
-								self.pubmsg(speech.suivant.format(self.partie.suivant(self.partie.pseudo[self.partie.precedent]).pseudo))
+								self.pubmsg(speech.suivant.format(repr(self.partie.suivant(self.partie.precedent))))
+								self.cards(self.partie.pseudos[self.partie.joueur])
 							else:
 								self.terminer()
 								return
