@@ -3,7 +3,11 @@ def uniforme(liste):
 	'''
 	Teste si une liste contient un seul type d'élément.
 	'''
-	return liste[1:] == liste[:-1]
+	print(liste)
+	for valeur in liste:
+		if valeur != liste[0]:
+			return False
+	return True
 
 def ascii(msg):
 	'''

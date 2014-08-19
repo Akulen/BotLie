@@ -55,9 +55,9 @@ class Joueur:
 		'''
 		self.cartes.sort()
 		valeurs = [carte.valeur for carte in self.cartes]
-		for index in range(len(valeurs) - 4):
-			if util.uniforme(valeurs[index:index + 3]):
-				del self.cartes[index:index + 3]
+		for index in range(len(valeurs) - 3):
+			if util.uniforme(valeurs[index:index + 4]):
+				del self.cartes[index:index + 4]
 				return valeurs[index]
 		return None
 

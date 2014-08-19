@@ -38,7 +38,7 @@ nouveau_tour = 'Nouveau tour, vous jouez des {}.'
     # Jeu.lie
 
 correct = '{} a raison, {} ment.'
-incorrect = '{} ne mentait pas, désolé {}..'
+incorrect = '{} ne mentait pas, désolé {}.'
 recolte_cartes_dur = 'BRAHH ! Vous vous êtes pris {} carte/s.'
 recolte_cartes_soft = 'Tu vas y arriver, ça fait rien si tu t\'es pris {} cartes. Tu restes fabuleux/se'
 
