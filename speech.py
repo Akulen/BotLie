@@ -12,7 +12,7 @@ initier_partie = 'Vous avez initié une partie de "Tu Mens !".\nVeuillez rejoind
 
     # Jeu.join
 
-ajout = '{} joue.'
+ajout = '{} joue. ({})'
 deja_ajoute = '{} joue déjà.'
 ERREUR_ajout = 'Il y a eu une erreur lors de l\'ajout de {} !'
 
@@ -33,13 +33,13 @@ poser_cartes = '{} a placé {} {}.'
 carte_invalide = 'Vous avez spécifié une/des carte/s que vous n\'avez pas.'
 carte_double = 'Vous avez renseigné plusieurs fois la même carte.'
 valeur_non_definie = 'La valeur n\'a pas été définie'
-nouveau_tour = 'Nouveau tour, vous jouez des {}.'
+nouveau_tour = '==========\nNouveau tour, vous jouez des {}.\n-----'
 
     # Jeu.lie
 
 correct = '{} a raison, {} ment.'
 incorrect = '{} ne mentait pas, désolé {}.'
-recolte_cartes_dur = 'BRAHH ! Vous vous êtes pris {} carte/s.'
+recolte_cartes_hard = 'BRAHH ! Vous vous êtes pris {} carte/s.'
 recolte_cartes_soft = 'Tu vas y arriver, ça fait rien si tu t\'es pris {} carte/s. Tu restes fabuleux/se'
 
 fin_partie = 'La partie est terminée, voici le classement :'
